@@ -60,6 +60,7 @@ create table Warehouse (
 create table Shipment (
   id serial,
   date_arrived DATE, -- добавил, чтобы легче было потом понять, что происходит
+  storekeeper_lastname TEXT,
   warehouse_id INT REFERENCES Warehouse
 );
 
