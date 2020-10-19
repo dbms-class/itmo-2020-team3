@@ -52,6 +52,17 @@ create table Distributor(
 -- «отпускной упаковкой» лекарства то, что покупает потребитель в аптеке – флакон, тюбик, коробочку, и т.д.
 create type SalePackageType as ENUM ('флакон', 'тюбик', 'коробочка');
 
+--  «перевозочной упаковкой» – более крупную тару, в которой помещается какое-то количество отпускных упаковок
+create table TransportPackage {
+  id serial primary key, 
+  sale_package SalePackageType,
+  sale_package_count int check (sale_package_count > 0),
+  transport_package_weight int check (transport_package_weight > 0),
+  drug_id INT REFERENCES Drug,
+}
+
+
+-- Добавить таблицу связку
 create table Warehouse (
   id serial PRIMARY KEY,
   address TEXT
@@ -59,23 +70,19 @@ create table Warehouse (
 
 create table Shipment (
   id serial,
-  date_arrived DATE, -- добавил, чтобы легче было потом понять, что происходит
+  date_arrived DATE,
   storekeeper_lastname TEXT,
   warehouse_id INT REFERENCES Warehouse
 );
 
---  «перевозочной упаковкой» – более крупную тару, в которой помещается какое-то количество отпускных упаковок
 -- в каждой поставке есть несколько строчек из данной таблицы (находяться по shipment_id)
 -- но у всех таких строчек из одной поставки должен быть различный drug_id
 create table ShipmentOfDrug (
   id serial primary key,
-  sale_package SalePackageType,
-  sale_package_count int check (sale_package_count > 0),
+  shipment_id INT REFERENCES Shipment,
+  box_id int references TransportPackage,
   transport_package_count int check (transport_package_count > 0),
-  transport_package_weight int check (transport_package_weight > 0),
-  check (sale_package_count > 0), 
-  shipment_id INT REFERENCES Shipment
-  drug_id INT REFERENCES Drug,
+  price_sale_package double check (price_sale_package > 0) 
 );
 
 
