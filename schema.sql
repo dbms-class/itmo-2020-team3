@@ -1,6 +1,8 @@
 -- лекарственная форма (это таблетка, капсула, ампула, порошок или что-то еще)
-create type MedicalForm as ENUM ('powder', 'capsule', 'ampoule', 'pill');
-
+create table MedicalForm (
+  id int primary key,
+  name text not null
+);
 
 -- Производитель имеет имя
 create table Manufacturer (
@@ -11,30 +13,30 @@ create table Manufacturer (
 -- Таких лабораторий несколько, и вам интересно от каждой лишь её название и фамилия руководителя.
 create TABLE Lab (
   id INT PRIMARY KEY, 
-  name TEXT,
-  chief TEXT
+  name TEXT check (length(name) >= 1),
+  chief_lastname TEXT check (length(chief_lastname) >= 1)
 );
 
--- У сертификата есть номер, срок действия и указание на исследователькую лабораторию, проводившую испытания.
+-- Сертификат с номером, сроком действия и указанием на исследователькую лабораторию, проводившую испытания.
 create TABLE Certification (
   number BIGINT PRIMARY KEY,
   valid_until DATE,
   lab_id INT REFERENCES Lab (id)
 );
 
---Ещё у лекарства есть основное действующее средство – это некоторое химическое соединение, у которого есть название и химическая формула
+-- Основное действующее средство – это некоторое химическое соединение, у которого есть название и химическая формула.
 create TABLE ChemicalCompound (
   id Serial PRIMARY KEY, 
-  name TEXT UNIQUE, 
+  name TEXT UNIQUE check (length(name) >= 1), 
   formula TEXT UNIQUE
 );
 
--- У каждого лекарства есть торговое название, международное непатен- тованное название, лекарственная форма и производитель.
+-- У каждого лекарства есть торговое название, международное непатентованное название, лекарственная форма, производитель, некоторое основное действующе вещество и сертификат.
 create table Drug (
   id serial PRIMARY KEY,
   trade_name text,
   international_name text,
-  medical_form MedicalForm,
+  medical_form int references MedicalForm,
   manufacturer_id INT references Manufacturer,
   main_chemicalcompound_id INT references ChemicalCompound,
   cert_number INT references Certification 
@@ -43,82 +45,108 @@ create table Drug (
 -- Юридическое лицо с адресом, номером банковского счета, фамилией и именем контактного лица и его телефоном.
 create table Distributor(
   id INT PRIMARY KEY,
-  address text,
-  bank_account INT UNIQUE ,
-  contact_name TEXT,
-  contact_phone TEXT
+  address text check (length(address) > 0),
+  bank_account DECIMAL(21,0) UNIQUE check (bank_account < 1e+21) ,
+  contact_name TEXT check(length(contact_name) > 1),
+  contact_phone TEXT check (length(contact_phone) >= 10 and length(contact_phone) < 20)
 );
 
--- «отпускной упаковкой» лекарства то, что покупает потребитель в аптеке – флакон, тюбик, коробочку, и т.д.
-create type SalePackageType as ENUM ('флакон', 'тюбик', 'коробочка');
+-- Отпускная упаковка лекарства - это некоторая упаковка лекарства типа: флакон, тюбик, коробочку, и т.д.
+create table SalePackage(
+  id int primary key,
+  name text not null
+);
 
---  «перевозочной упаковкой» – более крупную тару, в которой помещается какое-то количество отпускных упаковок
-create table TransportPackage {
+--  Перевозочная упаковка – это "ящик упаковок", которая имеет массу и опредленное число отпускных упаковок определенного лекарства и тип этих упаковок.
+create table TransportPackage (
   id serial primary key, 
-  sale_package SalePackageType,
+  sale_package int references SalePackage,
   sale_package_count int check (sale_package_count > 0),
-  transport_package_weight int check (transport_package_weight > 0),
-  drug_id INT REFERENCES Drug,
-}
+  weight int check (weight > 0),
+  drug_id INT REFERENCES Drug
+);
 
+-- На складах хранятся определенное число различных перевозочных упаковок.
+create table WarehousePackages (
+  id serial primary key, 
+  package_count int check (package_count >= 0),
+  warehouse_id int references Warehouse, 
+  transport_package_id int references TransportPackage
+);
 
--- Добавить таблицу связку
+-- Каждый склад определяется своим адресом и номером.
 create table Warehouse (
   id serial PRIMARY KEY,
   address TEXT
 );
 
-create table Shipment (
-  id serial,
-  date_arrived DATE,
-  storekeeper_lastname TEXT,
+-- Кладовщик с определенной фамилией работает на складе.
+create table Storekeeper (
+  id serial PRIMARY KEY, 
+  lastname text,
   warehouse_id INT REFERENCES Warehouse
 );
 
--- в каждой поставке есть несколько строчек из данной таблицы (находяться по shipment_id)
--- но у всех таких строчек из одной поставки должен быть различный drug_id
-create table ShipmentOfDrug (
+-- Поставка приезжает на склад, где работает определенный кладовщик в определенную дату.
+create table Shipment (
+  id serial PRIMARY KEY, 
+  date_arrived DATE,
+  storekeeper_id INT REFERENCES Storekeeper
+  -- warehouse_id INT REFERENCES Warehouse
+);
+
+-- Каждая поставка - это доставка определенного количества перевозочных упаковок определенного лекаства с определенной ценой за упаковку на определенный склад.
+create table ShipmentPackages (
   id serial primary key,
   shipment_id INT REFERENCES Shipment,
-  box_id int references TransportPackage,
+  transport_package_id int REFERENCES TransportPackage,
   transport_package_count int check (transport_package_count > 0),
-  price_sale_package double check (price_sale_package > 0) 
+  price_sale_package double precision check (price_sale_package > 0) 
 );
 
-
--- У вас есть некоторое количество розничных аптек. У каждой аптеки  имеется адрес и номер, известный покупателям (например, «Аптека за углом №7» по адресу 7-я линия, дом 18).
+-- Апетка, находящаяся по адресу с номером, известный покупателям, а также с названием.
 create table Pharmacy (
   id serial PRIMARY KEY,
-  name TEXT,
-  address TEXT, 
-  number INT
+  name TEXT UNIQUE,
+  address TEXT , 
+  number INT check (number >= 0) -- номер апетки
 );
 
+-- Определяет текущее состояние аптеки и цены. Комбинированный ключ спасет от ситуации, когда у нас в одной аптеке 2 одинаковых лекарства. 
 create table PharmacyGood (
-  pharmacy_id INT REFERENCES Pharmacy NOT NULL,
-  drug_id INT REFERENCES Drug NOT NULL,
-  price INT NOT NULL CHECK (price > 0), 
-  quantity INT NOT NULL CHECK (quantity >= 0)
+  pharmacy_id INT REFERENCES Pharmacy NOT NULL, --id апетки
+  drug_id INT REFERENCES Drug NOT NULL, -- id лекарства
+  price INT NOT NULL CHECK (price > 0), -- цена лекарства
+  quantity INT NOT NULL CHECK (quantity >= 0), -- кол-во 
+  primary key (pharmacy_id, drug_id) 
 );
 
+-- Автомобиль с регистрационным номером и датой последнего техобслуживания
+create table Car (
+  id serial PRIMARY KEY,
+  registration_number TEXT check (length(registration_number) between 8 and 9),
+  last_maintainance_ DATE
+);
 
--- Запасы лекарств в аптеках пополняют несколько автомобилей, которые получают задания вида ”такого то числа взять с такого то склада столько то перевозочных упаковок такого-то лекарства для такой то аптеки, столько то для сякой-то, и т.д.”.
+-- Задача пополнения лекарства в аптеках с автомобилем со склада в определенное время
 create table Task (
   id SERIAL PRIMARY KEY,
   car_id INT references Car NOT NULL,
   warehouse_id INT REFERENCES Warehouse,
-  date DATE
+  warehouse_fetch_time timestamp 
 );
 
+-- Список аптек в одной задаче
 create table Pharmacy_Task (
+  id serial primary key,
   pharmacy_id INT REFERENCES Pharmacy NOT NULL,
   task_id INT REFERENCES Task NOT NULL
 );
 
--- За автомобилями вы тоже следите, и записываете, помимо их регистрационного номера, дату последнего техобслуживания.
-create table Car (
-  id serial PRIMARY KEY,
-  registration_number TEXT,
-  last_maintainance_ DATE
+-- Сколько каких перевозочных упаковок для каждо аптеки в задаче
+create table PharmacyTaskPackages (
+  drug_id int references Drug,
+  pharmacy_task_id int references Pharmacy_Task,
+  package_count int check (package_count > 0) not null
 );
 
