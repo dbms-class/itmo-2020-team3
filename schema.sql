@@ -92,7 +92,7 @@ create table Shipment (
   id serial PRIMARY KEY, 
   date_arrived DATE,
   storekeeper_id INT REFERENCES Storekeeper
-  -- warehouse_id INT REFERENCES Warehouse
+  warehouse_id INT REFERENCES Warehouse
 );
 
 -- Каждая поставка - это доставка определенного количества перевозочных упаковок определенного лекаства с определенной ценой за упаковку на определенный склад.
