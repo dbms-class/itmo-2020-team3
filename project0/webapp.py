@@ -20,6 +20,19 @@ class App(object):
     @cherrypy.expose
     def index(self):
       return index()
+    
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def drugs(self):
+        with create_connection(self.args) as db:
+            cur = db.cursor()
+            cur.execute("SELECT id, trade_name, international_name FROM Drug")
+            drugs = cur.fetchall()
+            result = [
+                {"id": id_, "name": name, "inn": inn} for id_, name, inn in drugs
+            ]
+            return result
+
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
