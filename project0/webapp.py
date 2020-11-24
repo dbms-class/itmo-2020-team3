@@ -20,7 +20,46 @@ class App(object):
     @cherrypy.expose
     def index(self):
       return index()
-    
+
+    @cherrypy.expose
+    def update_retail(self,
+                      drug_id: int,
+                      pharmacy_id: int,
+                      remainder: int,
+                      price: float):
+        '''
+            Обновляет остаток данного лекар-
+        ства в данной аптеке, или вносит
+        его в случае отсутствия. Все аргу-
+        менты обязательные. Целочислен-
+        ный аргумент remainder означа-
+        ет абсолютный остаток в отпуск-
+        ных упаковках. Численный аргу-
+        мент price означает цену данного
+        лекарства в данной аптеке.
+        '''
+        drug_id = int(drug_id)
+        pharmacy_id = int(pharmacy_id)
+        remainder = int(remainder)
+        price = float(price)
+        with create_connection(self.args) as db:
+            cur = db.cursor()
+            # TODO find out why this does not wrok
+            cur.execute('''
+                if EXISTS (select from PharmacyGood where drug_id=%s and pharmacy_id=%s) then
+                    update PharmacyGood
+                    set price=%s, quantity=%s
+                    where drug_id=%s and pharmacy_id=%s;
+                else
+                    insert into PharmacyGood (drug_id, pharmacy_id, quantity, price)
+                    values (%s, %s, %s, %s);
+                end if
+                ''', (
+                drug_id, pharmacy_id,
+                drug_id, pharmacy_id, remainder, price,
+                price, remainder, drug_id, pharmacy_id
+            ))
+
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def drugs(self):
