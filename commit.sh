@@ -1,7 +1,7 @@
 #!/bin/sh
 PRJ=project$1
-git clone https://github.com/dbms-class/csc-2020-team-all
-cd csc-2020-team-all
+git clone https://github.com/dbms-class/itmo-2020-team3
+cd itmo-2020-team3
 git checkout -b $PRJ
 mkdir $PRJ
 cd $PRJ

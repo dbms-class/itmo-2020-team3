@@ -12,31 +12,19 @@ def index():
 <body>
 <form class="col-6">
     <div class="form-group">
-        <label for="planetSelect">Планета</label>
-        <select class="form-control" id="planetSelect">
-        </select>
-    </div>
-    <div class="form-group">
-        <label for="commanderSelect">Капитан</label>
-        <select class="form-control" id="commanderSelect">
+        <label for="drugSelect">Лекарство</label>
+        <select class="form-control" id="drugSelect">
         </select>
     </div>
 </form>
 <script lang="js">
     function loadData() {
-        const planetSelect = $('#planetSelect');
-        $.getJSON('/planets', function (countries) {
-           countries.forEach(function (value) {
+        const drugSelect = $('#drugSelect');
+        $.getJSON('/drugs', function (drugs) {
+           drugs.forEach(function (value) {
                $("<option>").text(value.name).attr("value", value.id)
-                   .appendTo(planetSelect);
+                   .appendTo(drugSelect);
            })
-        });
-        const commanderSelect = $('#commanderSelect');
-        $.getJSON('/commanders', function (commanders) {
-            commanders.forEach(function (value) {
-                $("<option>").text(value.name).attr("value", value.id)
-                    .appendTo(commanderSelect);
-            });
         });
     }
     $(document).ready(function () {
