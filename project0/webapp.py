@@ -6,6 +6,7 @@ import cherrypy
 
 from connect import parse_cmd_line, connection_factory
 from static import index
+from model import *
 
 
 @cherrypy.expose
@@ -69,12 +70,27 @@ class App(object):
                 id_, name, inn in drugs
             ]
             return result
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def pharmacies(self):
+        # todo: utf-8 is ignored
+        cherrypy.response.headers['Content-Type'] = 'charset=utf-8' # no effect
+        db = connection_factory.getconn(self.args)
+        try:
+            cur = db.cursor()
+            cur.execute("SELECT id, name, address, number FROM Pharmacy")
+            pharms = cur.fetchall()
+            result = [
+                Pharmacy(id_, name, address, number).to_json()
+                        for id_, name, address, number in pharms
+            ]
+            return result
         finally:
             connection_factory.putconn(db)
 
-
 cherrypy.config.update({
-    'server.socket_host': '0.0.0.0',
-    'server.socket_port': 8080,
+  'server.socket_host': '0.0.0.0',
+  'server.socket_port': 8081,
 })
 cherrypy.quickstart(App(parse_cmd_line()))
