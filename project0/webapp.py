@@ -7,6 +7,7 @@ import cherrypy
 from connect import parse_cmd_line
 from connect import create_connection
 from static import index
+from model import *
 
 @cherrypy.expose
 class App(object):
@@ -19,7 +20,7 @@ class App(object):
 
     @cherrypy.expose
     def index(self):
-      return index()
+        return index()
 
     @cherrypy.expose
     def update_retail(self,
@@ -72,20 +73,19 @@ class App(object):
             ]
             return result
 
-
     @cherrypy.expose
     @cherrypy.tools.json_out()
-    def planets(self, planet_id = None):
+    def pharmacies(self):
+        # todo: utf-8 is ignored
+        cherrypy.response.headers['Content-Type'] = 'charset=utf-8' # no effect
         with create_connection(self.args) as db:
             cur = db.cursor()
-            if planet_id is None:
-              cur.execute("SELECT id, name FROM Planet P")
-            else:
-              cur.execute("SELECT id, name FROM Planet WHERE id= %s", planet_id)
-            result = []
-            planets = cur.fetchall()
-            for p in planets:
-                result.append({"id": p[0], "name": p[1]})
+            cur.execute("SELECT id, name, address, number FROM Pharmacy")
+            pharms = cur.fetchall()
+            result = [
+                Pharmacy(id_, name, address, number).to_json()
+                        for id_, name, address, number in pharms
+            ]
             return result
 
     @cherrypy.expose
@@ -103,7 +103,6 @@ class App(object):
 
 cherrypy.config.update({
   'server.socket_host': '0.0.0.0',
-  'server.socket_port': 8080,
+  'server.socket_port': 8081,
 })
 cherrypy.quickstart(App(parse_cmd_line()))
-
