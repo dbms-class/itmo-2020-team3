@@ -91,7 +91,7 @@ create table Storekeeper (
 create table Shipment (
   id serial PRIMARY KEY,
   date_arrived DATE,
-  storekeeper_id INT REFERENCES Storekeeper
+  storekeeper_id INT REFERENCES Storekeeper,
   warehouse_id INT REFERENCES Warehouse
 );
 

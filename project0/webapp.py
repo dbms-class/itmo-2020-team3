@@ -4,7 +4,7 @@
 ## Веб сервер
 import cherrypy
 
-from connect import parse_cmd_line, connection_factory
+from connect import parse_cmd_line, create_connection_factory
 from static import index
 from model import *
 
@@ -13,6 +13,7 @@ from model import *
 class App(object):
     def __init__(self, args):
         self.args = args
+        self.connection_factory = create_connection_factory(args)
 
     @cherrypy.expose
     def start(self):
@@ -40,7 +41,7 @@ class App(object):
         pharmacy_id = int(pharmacy_id)
         remainder = int(remainder)
         price = float(price)
-        db = connection_factory.getconn(self.args)
+        db = self.connection_factory.getconn()
         try:
             cur = db.cursor()
             # replace with upsert if sqlite supports it
@@ -54,12 +55,12 @@ class App(object):
                 price, remainder, drug_id, pharmacy_id
             ))
         finally:
-            connection_factory.putconn(db)
+            self.connection_factory.putconn(db)
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def drugs(self):
-        db = connection_factory.getconn(self.args)
+        db = self.connection_factory.getconn()
         try:
             cur = db.cursor()
             cur.execute(
@@ -70,13 +71,15 @@ class App(object):
                 id_, name, inn in drugs
             ]
             return result
+        finally:
+            self.connection_factory.putconn(db)
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def pharmacies(self):
         # todo: utf-8 is ignored
         cherrypy.response.headers['Content-Type'] = 'charset=utf-8' # no effect
-        db = connection_factory.getconn(self.args)
+        db = self.connection_factory.getconn()
         try:
             cur = db.cursor()
             cur.execute("SELECT id, name, address, number FROM Pharmacy")
@@ -87,7 +90,7 @@ class App(object):
             ]
             return result
         finally:
-            connection_factory.putconn(db)
+            self.connection_factory.putconn(db)
 
 cherrypy.config.update({
   'server.socket_host': '0.0.0.0',

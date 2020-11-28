@@ -56,32 +56,36 @@ def create_connection(args):
         return create_connection_pg(args)
 
 
-class connection_factory:
-    def getconn(args):
+class ConnectionFactory:
+    def __init__(self, open_fxn, close_fxn):
+        self.getconn = open_fxn
+        self.putconn = close_fxn
+
+
+def create_connection_factory(args):
+    if args.sqlite_file is not None:
+        return ConnectionFactory(open_fxn=open_sqlite,
+                                 close_fxn=close_sqlite)
+    else:
         pg_pool = pg_driver.pool.SimpleConnectionPool(
-            1,
-            5,
-            user=args.pg_user,
-            password=args.pg_password,
+            1, 5, user=args.pg_user, password=args.pg_password,
             host=args.pg_host, port=args.pg_port
         )
-        if args.sqlite_file is not None:
-            return pg_driver.ConnectionFactory()
-        else:
-            def open_pg():
-                return pg_pool.getconn()
+
+        def getconn():
+            return pg_pool.getconn()
 
             # return pg_driver.connect(
             #     user=args.pg_user,
             #     password=args.pg_password,
-            #     host=args.pg_host, port=args.pg_port
+            #     host=args.pg_host,
+            #     port=args.pg_port
             # )
 
-            def close_pg(conn):
-                # conn.close()
-                pg_pool.putconn(conn)
+        def putconn(conn):
+            # conn.close()
+            pg_pool.putconn(conn)
 
-            return pg_driver.ConnectionFactory(
-                open_fxn=open_pg,
-                close_fxn=close_pg
-            )
+        return ConnectionFactory(
+            open_fxn=getconn, close_fxn=putconn
+        )
