@@ -16,7 +16,8 @@ def index():
         <select class="form-control" id="drugSelect"></select>
         <label for="pharmacySelect">Аптека</label>
         <select class="form-control" id="pharmacySelect"></select>
-        <p>Обновление лекарства</p>
+        
+        <h4 style="margin-top: 3rem;">Обновление лекарства</h4>
         <label for="drugInput">Аптека</label>
         <input class="form-control" id="drugInput"/>
         <label for="pharmacyInput">Лекарство</label>
@@ -24,7 +25,7 @@ def index():
         <label for="quantityInput">Количество</label>
         <input type="number" class="form-control" id="quantityInput"/>
         <label for="priceInput">Цена</label>
-        <input type="number" class="form-control" id="priceInput"/>
+        <input type="number" class="form-conctrol" id="priceInput"/>
         <button
             style="margin-top: 2rem;"
             class="form-control"
@@ -43,7 +44,9 @@ def index():
            })
         });
         const pharmacySelect = $('#pharmacySelect');
+        console.log(pharmacySelect);
         $.getJSON('/pharmacies', function (pharmacies) {
+            console.log(pharmacySelect);
             pharmacies.forEach(function (value) {
                 $("<option>").text(value.name).attr("value", value.id)
                     .appendTo(pharmacySelect);

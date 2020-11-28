@@ -44,7 +44,6 @@ class App(object):
         db = self.connection_factory.getconn()
         try:
             cur = db.cursor()
-            # replace with upsert if sqlite supports it
             cur.execute('''
                    insert into PharmacyGood 
                    (pharmacy_id, drug_id, price, quantity)
@@ -85,7 +84,7 @@ class App(object):
             cur.execute("SELECT id, name, address, number FROM Pharmacy")
             pharms = cur.fetchall()
             result = [
-                Pharmacy(id_, name, address, number).to_json()
+                Pharmacy(id_, "name", address, number).to_json()
                         for id_, name, address, number in pharms
             ]
             return result
