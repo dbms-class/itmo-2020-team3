@@ -49,7 +49,7 @@ class App(object):
                    insert into PharmacyGood 
                    (pharmacy_id, drug_id, price, quantity)
                    values (%s, %s, %s, %s)
-                   on conflict do update set price=%s, quantity=%s
+                   on conflict(pharmacy_id, drug_id) do update set price=%s, quantity=%s
                    where drug_id=%s and pharmacy_id=%s;''' % (
                 pharmacy_id, drug_id, price, remainder,
                 price, remainder, drug_id, pharmacy_id

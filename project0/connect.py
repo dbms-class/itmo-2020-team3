@@ -62,9 +62,19 @@ class ConnectionFactory:
         self.putconn = close_fxn
 
 
+def open_sqlite(args):
+    def inner():
+        return sqlite_driver.connect(args.sqlite_file)
+    return inner
+
+
+def close_sqlite(conn):
+    conn.close()
+
+
 def create_connection_factory(args):
     if args.sqlite_file is not None:
-        return ConnectionFactory(open_fxn=open_sqlite,
+        return ConnectionFactory(open_fxn=open_sqlite(args),
                                  close_fxn=close_sqlite)
     else:
         pg_pool = pg_driver.pool.SimpleConnectionPool(
