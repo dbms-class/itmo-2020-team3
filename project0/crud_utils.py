@@ -1,30 +1,25 @@
 from typing import Dict, Any, List, Optional
-from connect import create_connection_pg
+from connect import get_connection
 from dataclasses import dataclass
 from abc import ABC
 
 
 def get_one_by_id(props: List[str], object_id: int, table_name: str) -> Optional[Dict[str, Any]]:
-    connection = create_connection_pg({}) # FIXME: pass facture
-    try:
+    with get_connection({}) as connection: # FIXME: pass factory
         db_cursor = connection.cursor()
         db_cursor.execute(
             f"SELECT {','.join(props)} FROM {table_name} WHERE id=%s", (object_id,)
         )
 
         result = dict(zip(props, db_cursor.fetchone()))
-    finally:
-        connection.close()
 
     return result
 
 
 def get_all_from_table(props: List[str], table_name: str) -> List[Dict[str, Any]]:
-    connection = create_connection_pg({})  # FIXME: pass facture
-
     results = []
 
-    try:
+    with get_connection({}) as connection: # FIXME: pass factory
         db_cursor = connection.cursor()
         db_cursor.execute(f"SELECT {','.join(props)} FROM {table_name}")
 
@@ -35,7 +30,5 @@ def get_all_from_table(props: List[str], table_name: str) -> List[Dict[str, Any]
 
             for row in rows:
                 results.append(dict(zip(props, row)))
-    finally:
-        connection.close()
 
     return results

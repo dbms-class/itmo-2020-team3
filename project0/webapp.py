@@ -4,7 +4,7 @@
 ## Веб сервер
 import cherrypy
 
-from connect import parse_cmd_line, create_connection_factory
+from connect import parse_cmd_line, create_connection_factory, get_connection
 from static import index
 from model import *
 
@@ -41,8 +41,7 @@ class App(object):
         pharmacy_id = int(pharmacy_id)
         remainder = int(remainder)
         price = float(price)
-        db = self.connection_factory.getconn()
-        try:
+        with get_connection(self.connection_factory) as db:
             cur = db.cursor()
             cur.execute('''
                    insert into PharmacyGood 
@@ -53,14 +52,11 @@ class App(object):
                 pharmacy_id, drug_id, price, remainder,
                 price, remainder, drug_id, pharmacy_id
             ))
-        finally:
-            self.connection_factory.putconn(db)
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def drugs(self):
-        db = self.connection_factory.getconn()
-        try:
+        with get_connection(self.connection_factory) as db:
             cur = db.cursor()
             cur.execute(
                 "SELECT id, trade_name, international_name FROM Drug")
@@ -70,16 +66,13 @@ class App(object):
                 id_, name, inn in drugs
             ]
             return result
-        finally:
-            self.connection_factory.putconn(db)
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def pharmacies(self):
         # todo: utf-8 is ignored
         cherrypy.response.headers['Content-Type'] = 'charset=utf-8' # no effect
-        db = self.connection_factory.getconn()
-        try:
+        with get_connection(self.connection_factory) as db:
             cur = db.cursor()
             cur.execute("SELECT id, name, address, number FROM Pharmacy")
             pharms = cur.fetchall()
@@ -88,8 +81,13 @@ class App(object):
                         for id_, name, address, number in pharms
             ]
             return result
-        finally:
-            self.connection_factory.putconn(db)
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def status_retail(self, drug_id=None, min_remainder=None, max_price=None):
+        with get_connection(self.connection_factory) as db:
+            cur = db.cursor()
+            cur.execute("")
 
 cherrypy.config.update({
   'server.socket_host': '0.0.0.0',

@@ -7,6 +7,7 @@ import argparse
 # pip install psycopg2-binary или её аналогом.
 import psycopg2 as pg_driver
 import psycopg2.pool
+from contextlib import contextmanager
 # Драйвер SQLite3
 # Находится в модуле sqlite3, который можно установить командой
 # pip install sqlite3 или её аналогом.
@@ -34,37 +35,25 @@ def parse_cmd_line():
     return parser.parse_args()
 
 
-# Создаёт подключение к постгресу в соответствии с аргументами командной строки.
-def create_connection_pg(args):
-    return pg_driver.connect(user=args.pg_user,
-                             password=args.pg_password,
-                             host=args.pg_host, port=args.pg_port)
-
-
-# Создаёт подключение к SQLite в соответствии с аргументами командной строки.
-def create_connection_sqlite(args):
-    return sqlite_driver.connect(args.sqlite_file)
-
-
-# Создаёт подключение в соответствии с аргументами командной строки.
-# Если указан аргумент --sqlite-file то создается подключение к SQLite,
-# в противном случае создаётся подключение к PostgreSQL
-def create_connection(args):
-    if args.sqlite_file is not None:
-        return create_connection_sqlite(args)
-    else:
-        return create_connection_pg(args)
-
-
 class ConnectionFactory:
     def __init__(self, open_fxn, close_fxn):
         self.getconn = open_fxn
         self.putconn = close_fxn
 
 
+@contextmanager
+def get_connection(factory):
+    conn = factory.getconn()
+    try:
+        yield conn
+    finally:
+        factory.putconn(conn)
+
+
 def open_sqlite(args):
     def inner():
         return sqlite_driver.connect(args.sqlite_file)
+
     return inner
 
 
