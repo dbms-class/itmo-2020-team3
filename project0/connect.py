@@ -42,7 +42,7 @@ class ConnectionFactory:
 
 
 @contextmanager
-def get_connection(factory):
+def get_connection(factory: ConnectionFactory):
     conn = factory.getconn()
     try:
         yield conn
