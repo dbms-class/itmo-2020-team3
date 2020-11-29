@@ -4,7 +4,8 @@
 ## Веб сервер
 import cherrypy
 
-from connect import parse_cmd_line, create_connection_factory, get_connection
+from connect import parse_cmd_line, create_connection_factory, \
+    get_connection
 from static import index
 from model import *
 
@@ -68,23 +69,40 @@ class App(object):
     def pharmacies(self):
         with get_connection(self.connection_factory) as db:
             cur = db.cursor()
-            cur.execute("SELECT id, name, address, number FROM Pharmacy")
+            cur.execute(
+                "SELECT id, name, address, number FROM Pharmacy")
             pharms = cur.fetchall()
             result = [
                 Pharmacy(id_, name, address, number).to_json()
-                        for id_, name, address, number in pharms
+                for id_, name, address, number in pharms
             ]
             return result
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
-    def status_retail(self, drug_id=None, min_remainder=None, max_price=None):
+    def status_retail(self, drug_id=None, min_remainder=None,
+                      max_price=None):
         with get_connection(self.connection_factory) as db:
             cur = db.cursor()
-            cur.execute("")
+            drug_id_filter = "drug_id = %s " % drug_id if drug_id is not None else ""
+            min_remainder_filter = "min_remainder = %s " % min_remainder if min_remainder is not None else ""
+            max_price_filter = "max_price = %s " % max_price if max_price is not None else ""
+            where = ""
+            # if drug_id_filter or min_remainder_filter or max_price_filter:
+            #     where = "where " + drug_id_filter + min_remainder_filter + max_price_filter
+            cur.execute("SELECT drug_id, trade_name, "
+                        "international_name, pharmacy_id, address, "
+                        "remainder, price "
+                        "from Pharmacy p inner join PharmacyGood pg "
+                        "on p.id = pg.pharmacy_id "
+                        "inner join Drug d on d.id = pg.drug_id "
+                        "%s" % where)
+            result = cur.fetchall()
+            return result
+
 
 cherrypy.config.update({
-  'server.socket_host': '0.0.0.0',
-  'server.socket_port': 8081,
+    'server.socket_host': '0.0.0.0',
+    'server.socket_port': 8081,
 })
 cherrypy.quickstart(App(parse_cmd_line()))
