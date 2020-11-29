@@ -37,10 +37,6 @@ class App(object):
         Численный аргумент price означает цену данного
         лекарства в данной аптеке.
         '''
-        drug_id = int(drug_id)
-        pharmacy_id = int(pharmacy_id)
-        remainder = int(remainder)
-        price = float(price)
         with get_connection(self.connection_factory) as db:
             cur = db.cursor()
             cur.execute('''
@@ -70,14 +66,12 @@ class App(object):
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def pharmacies(self):
-        # todo: utf-8 is ignored
-        cherrypy.response.headers['Content-Type'] = 'charset=utf-8' # no effect
         with get_connection(self.connection_factory) as db:
             cur = db.cursor()
             cur.execute("SELECT id, name, address, number FROM Pharmacy")
             pharms = cur.fetchall()
             result = [
-                Pharmacy(id_, "name", address, number).to_json()
+                Pharmacy(id_, name, address, number).to_json()
                         for id_, name, address, number in pharms
             ]
             return result

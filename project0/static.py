@@ -12,20 +12,15 @@ def index():
 <body>
 <form class="col-6">
     <div class="form-group">
+        <h4 style="margin-top: 1rem;">Обновить лекарство</h4>
         <label for="drugSelect">Лекарство</label>
         <select class="form-control" id="drugSelect"></select>
         <label for="pharmacySelect">Аптека</label>
         <select class="form-control" id="pharmacySelect"></select>
-        
-        <h4 style="margin-top: 3rem;">Обновление лекарства</h4>
-        <label for="drugInput">Аптека</label>
-        <input class="form-control" id="drugInput"/>
-        <label for="pharmacyInput">Лекарство</label>
-        <input class="form-control" id="pharmacyInput"/>
         <label for="quantityInput">Количество</label>
         <input type="number" class="form-control" id="quantityInput"/>
         <label for="priceInput">Цена</label>
-        <input type="number" class="form-conctrol" id="priceInput"/>
+        <input type="number" class="form-control" id="priceInput"/>
         <button
             style="margin-top: 2rem;"
             class="form-control"
@@ -44,22 +39,21 @@ def index():
            })
         });
         const pharmacySelect = $('#pharmacySelect');
-        console.log(pharmacySelect);
         $.getJSON('/pharmacies', function (pharmacies) {
-            console.log(pharmacySelect);
             pharmacies.forEach(function (value) {
+                value = JSON.parse(value);
                 $("<option>").text(value.name).attr("value", value.id)
                     .appendTo(pharmacySelect);
             });
         });
         $('#updateGoodButton').click(function() {
-            const drugInput = $('#drugInput');
-            const pharmacyInput = $('#pharmacyInput');
+            const drugSelect = $('#drugSelect');
+            const pharmacySelect = $('#pharmacySelect');
             const quantityInput = $('#quantityInput');
             const priceInput = $('#priceInput');
             $.post("/update_retail", {
-                "drug_id": drugInput.val(),
-                "pharmacy_id": pharmacyInput.val(),
+                "drug_id": drugSelect.val(),
+                "pharmacy_id": pharmacySelect.val(),
                 "remainder": quantityInput.val(),
                 "price": priceInput.val(),
             });
