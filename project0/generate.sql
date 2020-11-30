@@ -49,7 +49,15 @@ select local_name, inn,
 From Banch; 
 
 
-
+insert into PharmacyGood(pharmacy_id, drug_id, price, quantity)
+values (1, 123, 323, 9), 
+       (2, 123, 350, 1), 
+       (1, 125, 101, 4), 
+       (2, 125, 141, 8), 
+       (1, 126, 2700, 11), 
+       (3, 126, 2700, 2),
+       (1, 127, 1250, 4), 
+       (3, 127, 1250, 7);
 
 
 
