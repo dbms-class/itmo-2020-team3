@@ -60,32 +60,9 @@ class App(object):
     def pharmacies(self):
         return [pharm.to_json() for pharm in Pharmacy.get_all(self.connection_factory)]
 
-    # @cherrypy.expose
-    # @cherrypy.tools.json_out()
-    # def status_retail(self, drug_id=None, min_remainder=None,
-    #                   max_price=None):
-    #     with get_connection(self.connection_factory) as db:
-    #         cur = db.cursor()
-    #         drug_id_filter = "drug_id = %s " % drug_id if drug_id is not None else ""
-    #         min_remainder_filter = "min_remainder = %s " % min_remainder if min_remainder is not None else ""
-    #         max_price_filter = "max_price = %s " % max_price if max_price is not None else ""
-    #         where = ""
-    #         if drug_id_filter or min_remainder_filter or max_price_filter:
-    #             where = "where " + drug_id_filter + min_remainder_filter + max_price_filter
-    #         cur.execute("SELECT drug_id, trade_name, "
-    #                     "international_name, pharmacy_id, address, "
-    #                     "quantity, price "
-    #                     "from Pharmacy p inner join PharmacyGood pg "
-    #                     "on p.id = pg.pharmacy_id "
-    #                     "inner join Drug d on d.id = pg.drug_id "
-    #                     "%s" % where)
-    #         result = cur.fetchall()
-    #         return result
-
-
     @cherrypy.expose
     @cherrypy.tools.json_out()
-    def status_test(self, drug_id=None, min_remainder=None,
+    def status_retail(self, drug_id=None, min_remainder=None,
                     max_price=None):
         drug_id_filter = f"drug_id = {drug_id} " if drug_id else ""
         min_remainder_filter = f"min_remainder = {min_remainder} " if min_remainder else ""
