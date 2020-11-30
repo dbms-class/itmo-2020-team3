@@ -4,10 +4,10 @@
 ## Веб сервер
 import cherrypy
 
-from connect import parse_cmd_line, create_connection_factory, \
-    get_connection
-from static import index
+from connect import parse_cmd_line, create_connection_factory
+from crud_utils import get_joined_relation
 from model import *
+from static import index
 
 
 @cherrypy.expose
@@ -70,17 +70,39 @@ class App(object):
     #         min_remainder_filter = "min_remainder = %s " % min_remainder if min_remainder is not None else ""
     #         max_price_filter = "max_price = %s " % max_price if max_price is not None else ""
     #         where = ""
-    #         # if drug_id_filter or min_remainder_filter or max_price_filter:
-    #         #     where = "where " + drug_id_filter + min_remainder_filter + max_price_filter
+    #         if drug_id_filter or min_remainder_filter or max_price_filter:
+    #             where = "where " + drug_id_filter + min_remainder_filter + max_price_filter
     #         cur.execute("SELECT drug_id, trade_name, "
     #                     "international_name, pharmacy_id, address, "
-    #                     "remainder, price "
+    #                     "quantity, price "
     #                     "from Pharmacy p inner join PharmacyGood pg "
     #                     "on p.id = pg.pharmacy_id "
     #                     "inner join Drug d on d.id = pg.drug_id "
     #                     "%s" % where)
     #         result = cur.fetchall()
     #         return result
+
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def status_test(self, drug_id=None, min_remainder=None,
+                    max_price=None):
+        drug_id_filter = f"drug_id = {drug_id} " if drug_id else ""
+        min_remainder_filter = f"min_remainder = {min_remainder} " if min_remainder else ""
+        max_price_filter = f"max_price = {max_price} " if max_price else ""
+        filtering_predicate = ""
+        if drug_id_filter or min_remainder_filter or max_price_filter:
+            filtering_predicate = "where " + drug_id_filter + min_remainder_filter + max_price_filter
+
+        props = "drug_id,trade_name,international_name,pharmacy_id,address,quantity,price".split(',')
+
+        constructed_res = get_joined_relation(props, self.connection_factory,
+                                              filtering_predicate, "Pharmacy", "PharmacyGood",
+                                                  "id", "pharmacy_id",
+                                                  "Drug", "id", "drug_id")
+
+        return [RetailStatus(*r).to_json() for r in constructed_res]
+
 
 
 cherrypy.config.update({
