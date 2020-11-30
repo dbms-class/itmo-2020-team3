@@ -3,7 +3,7 @@ from abc import ABC
 from dataclasses import dataclass
 
 from connect import ConnectionFactory
-from crud_utils import get_one_by_id, get_all_from_table
+from crud_utils import get_one_by_id, get_all_from_table, get_one_by_kwargs
 
 
 class ORMBase(ABC):
@@ -16,11 +16,17 @@ class ORMBase(ABC):
         return cls(**params)
 
     @classmethod
+    def get_by_kwargs(cls, connection_factory: ConnectionFactory, **kwargs):
+        params = get_one_by_kwargs(list(cls.__annotations__.keys()), cls.__name__, connection_factory, **kwargs)
+        if not params:
+            return None
+
+        return cls(**params)
+
+    @classmethod
     def get_all(cls, connection_factory: ConnectionFactory):
         objects_params = get_all_from_table(list(cls.__annotations__.keys()), cls.__name__, connection_factory)
         return [cls(**params) for params in objects_params]
-
-
     # need to rename overlapping names in RetailStatus to do so
     # @classmethod
     # def get_joined(cls, connection_factory, filtering_predicate, first_table_name: str, second_table_name: str,
@@ -45,6 +51,14 @@ class Pharmacy(ORMBase):
     name: str
     address: str
     number: int
+
+
+@dataclass
+class PharmacyGood(ORMBase):
+    pharmacy_id: int
+    drug_id: int
+    price: int
+    quantity: int
 
 
 @dataclass

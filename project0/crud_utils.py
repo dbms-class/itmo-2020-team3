@@ -16,6 +16,18 @@ def get_one_by_id(
 
     return result
 
+def get_one_by_kwargs(
+        props: List[str], table_name: str, connection_factory: ConnectionFactory, **kwargs
+) -> Optional[Dict[str, Any]]:
+    with get_connection(connection_factory) as connection:
+        db_cursor = connection.cursor()
+        db_cursor.execute(
+            f"SELECT {','.join(props)} FROM {table_name} WHERE {' and '.join(f'{k}=%s' for k in kwargs.keys())}", tuple(kwargs.values())
+        )
+
+        result = dict(zip(props, db_cursor.fetchone()))
+
+    return result
 
 def get_all_from_table(
         props: List[str], table_name: str, connection_factory: ConnectionFactory
