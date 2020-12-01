@@ -41,21 +41,16 @@ class App(object):
         drug_id = int(drug_id)
         pharmacy_id = int(pharmacy_id)
         remainder = int(remainder)
-        # price = float(price)
+        price = float(price)
 
-        phg = PharmacyGood.get_by_kwargs(self.connection_factory, drug_id=drug_id, pharmacy_id=pharmacy_id)
-        print(phg)
-        # with get_connection(self.connection_factory) as db:
-        #     cur = db.cursor()
-        #     cur.execute('''
-        #            insert into PharmacyGood
-        #            (pharmacy_id, drug_id, price, quantity)
-        #            values (%s, %s, %s, %s)
-        #            on conflict(pharmacy_id, drug_id) do update set price=%s, quantity=%s
-        #            where drug_id=%s and pharmacy_id=%s;''' % (
-        #         pharmacy_id, drug_id, price, remainder,
-        #         price, remainder, drug_id, pharmacy_id
-        #     ))
+        phg = PharmacyGood.upsert_by_kwargs(self.connection_factory,
+                                            drug_id=drug_id,
+                                            pharmacy_id=pharmacy_id,
+                                            remainder=remainder,
+                                            price=price,
+                                            key_columns=('drug_id', 'pharmacy_id'),
+                                            update_columns=('remainder','price'))
+        return phg
 
 
     @cherrypy.expose

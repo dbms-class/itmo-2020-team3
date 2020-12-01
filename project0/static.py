@@ -34,7 +34,8 @@ def index():
         const drugSelect = $('#drugSelect');
         $.getJSON('/drugs', function (drugs) {
            drugs.forEach(function (value) {
-               $("<option>").text(value.name).attr("value", value.id)
+               value = JSON.parse(value);
+               $("<option>").text(value.trade_name).attr("value", value.id)
                    .appendTo(drugSelect);
            })
         });

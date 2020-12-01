@@ -3,7 +3,8 @@ from abc import ABC
 from dataclasses import dataclass
 
 from connect import ConnectionFactory
-from crud_utils import get_one_by_id, get_all_from_table, get_one_by_kwargs
+from crud_utils import get_one_by_id, get_all_from_table,\
+    get_one_by_kwargs, upsert_one_by_kwargs
 
 
 class ORMBase(ABC):
@@ -18,6 +19,14 @@ class ORMBase(ABC):
     @classmethod
     def get_by_kwargs(cls, connection_factory: ConnectionFactory, **kwargs):
         params = get_one_by_kwargs(list(cls.__annotations__.keys()), cls.__name__, connection_factory, **kwargs)
+        if not params:
+            return None
+
+        return cls(**params)
+
+    @classmethod
+    def upsert_by_kwargs(cls, connection_factory: ConnectionFactory, **kwargs):
+        params = upsert_one_by_kwargs(list(cls.__annotations__.keys()), cls.__name__, connection_factory, **kwargs)
         if not params:
             return None
 

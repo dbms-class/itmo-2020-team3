@@ -29,6 +29,20 @@ def get_one_by_kwargs(
 
     return result
 
+def upsert_one_by_kwargs(
+        props: List[str], table_name: str, connection_factory: ConnectionFactory, **kwargs
+) -> None:
+    pass
+    with get_connection(connection_factory) as connection:
+        cur = connection.cursor()
+        #TODO find out how to send partial update
+        statement = f"INSERT INTO {table_name} {','.join(props)} VALUES (','.join(kwargs.values()))" \
+                    f" ON CONFLICT (','.join(kwargs.keys()))) DO UPDATE SET price=%s, quantity=%s" \
+                    f" where drug_id=%s and pharmacy_id=%s;"
+        print(statement)
+        cur.execute(statement)
+
+
 def get_all_from_table(
         props: List[str], table_name: str, connection_factory: ConnectionFactory
 ) -> List[Dict[str, Any]]:
