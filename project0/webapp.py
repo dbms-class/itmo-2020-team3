@@ -4,7 +4,7 @@
 ## Веб сервер
 import cherrypy
 
-from connect import parse_cmd_line, create_connection_factory
+from connect import parse_cmd_line, create_connection_factory, get_connection
 from crud_utils import get_joined_relation
 from model import *
 from static import index
@@ -41,21 +41,22 @@ class App(object):
         drug_id = int(drug_id)
         pharmacy_id = int(pharmacy_id)
         remainder = int(remainder)
-        # price = float(price)
+        price = int(price)
 
-        phg = PharmacyGood.get_by_kwargs(self.connection_factory, drug_id=drug_id, pharmacy_id=pharmacy_id)
-        print(phg)
-        # with get_connection(self.connection_factory) as db:
-        #     cur = db.cursor()
-        #     cur.execute('''
-        #            insert into PharmacyGood
-        #            (pharmacy_id, drug_id, price, quantity)
-        #            values (%s, %s, %s, %s)
-        #            on conflict(pharmacy_id, drug_id) do update set price=%s, quantity=%s
-        #            where drug_id=%s and pharmacy_id=%s;''' % (
-        #         pharmacy_id, drug_id, price, remainder,
-        #         price, remainder, drug_id, pharmacy_id
-        #     ))
+        # phg = PharmacyGood.get_by_kwargs(self.connection_factory, drug_id=drug_id, pharmacy_id=pharmacy_id)
+        # print(phg)
+        with get_connection(self.connection_factory) as db:
+            cur = db.cursor()
+            cur.execute('''
+                   insert into PharmacyGood 
+                   (pharmacy_id, drug_id, price, quantity)
+                   values (%s, %s, %s, %s)
+                   on conflict(pharmacy_id, drug_id) do update set price=%s, quantity=%s
+                   where PharmacyGood.drug_id=%s and PharmacyGood.pharmacy_id=%s;''' % (
+                pharmacy_id, drug_id, price, remainder,
+                price, remainder, drug_id, pharmacy_id
+            ))
+            db.commit()
 
 
     @cherrypy.expose
