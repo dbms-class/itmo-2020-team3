@@ -1,94 +1,169 @@
 import json
+
+import peewee as pw
+
 from abc import ABC
-from dataclasses import dataclass
 
 from connect import ConnectionFactory
-from crud_utils import get_one_by_id, get_all_from_table,\
-    get_one_by_kwargs, upsert_one_by_kwargs
 
 
 class ORMBase(ABC):
-    @classmethod
-    def get_by_id(cls, connection_factory: ConnectionFactory, object_id: int):
-        params = get_one_by_id(list(cls.__annotations__.keys()), object_id, cls.__name__, connection_factory)
-        if not params:
-            return None
-
-        return cls(**params)
-
-    @classmethod
-    def get_by_kwargs(cls, connection_factory: ConnectionFactory, **kwargs):
-        params = get_one_by_kwargs(list(cls.__annotations__.keys()), cls.__name__, connection_factory, **kwargs)
-        if not params:
-            return None
-
-        return cls(**params)
-
-    @classmethod
-    def upsert_by_kwargs(cls, connection_factory: ConnectionFactory, **kwargs):
-        params = upsert_one_by_kwargs(list(cls.__annotations__.keys()), cls.__name__, connection_factory, **kwargs)
-        if not params:
-            return None
-
-        return cls(**params)
-
-    @classmethod
-    def get_all(cls, connection_factory: ConnectionFactory):
-        objects_params = get_all_from_table(list(cls.__annotations__.keys()), cls.__name__, connection_factory)
-        return [cls(**params) for params in objects_params]
-    # need to rename overlapping names in RetailStatus to do so
-    # @classmethod
-    # def get_joined(cls, connection_factory, filtering_predicate, first_table_name: str, second_table_name: str,
-    #                lhs_param: str, rhs_param: str, *join_args):
-    #
-    #     constructed_res = get_joined_dependencies(list(cls.__annotations__.keys()), connection_factory,
-    #                                               filtering_predicate, first_table_name, second_table_name,
-    #                                               lhs_param, rhs_param, join_args)
-    #
-    #     return [cls(*constructed_res) for r in constructed_res]
-
-
-    # simple approach with no decoder/encoder classes
     def to_json(self):
         return json.dumps(self, default=lambda o: o.__dict__,
                           sort_keys=True, ensure_ascii=False)
 
+    @classmethod
+    def bind_to_database(cls, connection):
+        raise NotImplemented
 
-@dataclass
+
 class Pharmacy(ORMBase):
-    id: int
-    name: str
-    address: str
-    number: int
+    def __init__(self, id: int, name: str = None, address: str = None, number: int = None):
+        self.id = id
+        self.name = name
+        self.address = address
+        self.number = number
+
+    @classmethod
+    def get(cls, connection_factory: ConnectionFactory, pharmacy_id: int = None):
+        with connection_factory.get_connection() as connection:
+            pharmacy_table = cls.bind_to_database(connection)
+
+            q = pharmacy_table.select(
+                pharmacy_table.c.id,
+                pharmacy_table.c.name,
+                pharmacy_table.c.address,
+                pharmacy_table.c.number,
+            )
+
+            if pharmacy_id is not None:
+                q = q.where(pharmacy_table.c.id == pharmacy_id)
+
+            obj = [f for f in q.objects(cls)]
+
+        return obj
+
+    @classmethod
+    def bind_to_database(cls, connection):
+        return pw.Table('pharmacy').bind(connection)
 
 
-@dataclass
-class PharmacyGood(ORMBase):
-    pharmacy_id: int
-    drug_id: int
-    price: int
-    quantity: int
-
-
-@dataclass
 class Drug(ORMBase):
-    id: int
-    trade_name: str
-    international_name: str
-    medical_form: int
-    manufacturer_id: int
-    main_chemicalcompound_id: int
-    cert_number: int
+    def __init__(self, id: int, trade_name: str = None, international_name: str = None):
+        self.id = id
+        self.trade_name = trade_name
+        self.international_name = international_name
+
+    @classmethod
+    def get(cls, connection_factory: ConnectionFactory, drug_id: int = None):
+        with connection_factory.get_connection() as connection:
+            drugs_table = cls.bind_to_database(connection)
+
+            q = drugs_table.select(
+                drugs_table.c.id,
+                drugs_table.c.trade_name,
+                drugs_table.c.international_name,
+            )
+
+            if drug_id is not None:
+                q = q.where(drugs_table.c.id == drug_id)
+
+            obj = [f for f in q.objects(cls)]
+
+        return obj
+
+    @classmethod
+    def bind_to_database(cls, connection):
+        return pw.Table('drug').bind(connection)
 
 
-@dataclass
+class PharmacyGood(ORMBase):
+    @classmethod
+    def update(cls, connection_factory: ConnectionFactory,
+               drug_id: int, pharmacy_id: int, remainder: int, price: float):
+        with connection_factory.get_connection() as connection:
+            pharmacy_good_table = cls.bind_to_database(connection)
+
+            q = pharmacy_good_table.update(
+                quantity = int(remainder),
+                price = float(price)
+            ).where(
+                pharmacy_good_table.c.drug_id == drug_id,
+                pharmacy_good_table.c.pharmacy_id == pharmacy_id,
+            )
+
+            q.execute()
+
+    @classmethod
+    def bind_to_database(cls, connection):
+        return pw.Table('pharmacygood').bind(connection)
+
+
 class RetailStatus(ORMBase):
-    drug_id: int
-    drug_trade_name: str
-    drug_inn: str
-    pharmacy_id: int
-    pharmacy_address: str
-    quantity: int
-    price: int
-    # min_price: int # todo
-    # max_price: int
+    def __init__(self, drug_id: int, drug_trade_name: str, drug_inn: str, pharmacy_id: int, pharmacy_address: str,
+                 remainder: int, price: float, min_price: float, max_price: float):
+        self.drug_id = drug_id
+        self.drug_trade_name = drug_trade_name
+        self.drug_inn = drug_inn
+        self.pharmacy_id = pharmacy_id
+        self.pharmacy_address = pharmacy_address
+        self.remainder = remainder
+        self.price = price
+        self.min_price = min_price
+        self.max_price = max_price
+
+    @classmethod
+    def get(cls, connection_factory: ConnectionFactory, drug_id: int = None, min_remainder: int = None,
+            max_price: int = None):
+        with connection_factory.get_connection() as connection:
+            pharmacy_good_table = PharmacyGood.bind_to_database(connection)
+            drugs_table = Drug.bind_to_database(connection)
+            pharmacy_table = Pharmacy.bind_to_database(connection)
+
+            min_max_query = pharmacy_good_table.select(
+                pw.fn.MIN(pharmacy_good_table.c.price).alias('min_price'),
+                pw.fn.MAX(pharmacy_good_table.c.price).alias('max_price')
+            )
+
+            q = pharmacy_good_table.select(
+                drugs_table.c.id.alias('drug_id'),
+                drugs_table.c.trade_name.alias('drug_trade_name'),
+                drugs_table.c.international_name.alias('drug_inn'),
+
+                pharmacy_table.c.id.alias('pharmacy_id'),
+                pharmacy_table.c.address.alias('pharmacy_address'),
+
+                pharmacy_good_table.c.quantity.alias('remainder'),
+                pharmacy_good_table.c.price,
+
+                min_max_query.c.min_price,
+                min_max_query.c.max_price
+            ).join(
+                drugs_table, on=(drugs_table.c.id == pharmacy_good_table.c.drug_id)
+            ).join(
+                pharmacy_table, on=(pharmacy_table.c.id == pharmacy_good_table.c.pharmacy_id)
+            )
+
+            if drug_id is not None:
+                q = q.where(pharmacy_good_table.c.drug_id == int(drug_id))
+                min_max_query = min_max_query.where(pharmacy_good_table.c.drug_id == int(drug_id))
+
+            if min_remainder is not None:
+                q = q.where(pharmacy_good_table.c.quantity >= int(min_remainder))
+                min_max_query = min_max_query.where(pharmacy_good_table.c.quantity >= int(min_remainder))
+
+            if max_price is not None:
+                q = q.where(pharmacy_good_table.c.price <= float(max_price))
+                min_max_query = min_max_query.where(pharmacy_good_table.c.price <= float(max_price))
+
+            q = q.join(
+                min_max_query, join_type=pw.JOIN.CROSS
+            )
+
+            obj = [f for f in q.objects(cls)]
+
+        return obj
+
+    @classmethod
+    def bind_to_database(cls, connection):
+        pass

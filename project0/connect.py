@@ -1,6 +1,9 @@
 # encoding: UTF-8
 
 import argparse
+import abc
+
+import cherrypy
 
 # Драйвер PostgreSQL
 # Находится в модуле psycopg2-binary, который можно установить командой
@@ -8,10 +11,12 @@ import argparse
 import psycopg2 as pg_driver
 import psycopg2.pool
 from contextlib import contextmanager
+
 # Драйвер SQLite3
 # Находится в модуле sqlite3, который можно установить командой
 # pip install sqlite3 или её аналогом.
 import sqlite3 as sqlite_driver
+from playhouse.db_url import connect
 
 
 # Разбирает аргументы командной строки.
@@ -35,56 +40,47 @@ def parse_cmd_line():
     return parser.parse_args()
 
 
-class ConnectionFactory:
-    def __init__(self, open_fxn, close_fxn):
-        self.getconn = open_fxn
-        self.putconn = close_fxn
+class ConnectionFactory(abc.ABC):
+    @contextmanager
+    def get_connection(self):
+        conn = self.__get_conn()
+        try:
+            yield conn
+        finally:
+            ConnectionFactory.__put_conn(conn)
+
+    def __get_conn(self):
+        return connect(self._get_db_url())
+
+    @staticmethod
+    def __put_conn(conn):
+        conn.close()
+
+    @abc.abstractmethod
+    def _get_db_url(self):
+        pass
 
 
-@contextmanager
-def get_connection(factory: ConnectionFactory):
-    conn = factory.getconn()
-    try:
-        yield conn
-    finally:
-        factory.putconn(conn)
+class PGConnectionFactory(ConnectionFactory):
+    def __init__(self, args):
+        self.__db_url = f"postgres+pool://{args.pg_user}:{args.pg_password}@{args.pg_host}:{args.pg_port}/{args.pg_database}"
+
+    def _get_db_url(self):
+        return self.__db_url
 
 
-def open_sqlite(args):
-    def inner():
-        return sqlite_driver.connect(args.sqlite_file)
+class SQLiteConnectionFactory(ConnectionFactory):
+    def __init__(self, args):
+        self.__db_url = f"sqlite+pool:///{args.sqlite_file}"
 
-    return inner
-
-
-def close_sqlite(conn):
-    conn.close()
+    def _get_db_url(self):
+        return self.__db_url
 
 
 def create_connection_factory(args):
-    if args.sqlite_file is not None:
-        return ConnectionFactory(open_fxn=open_sqlite(args),
-                                 close_fxn=close_sqlite)
+    if args.pg_database is None or args.pg_database == '':
+        cherrypy.log("DB Use SQLite")
+        return SQLiteConnectionFactory(args)
     else:
-        pg_pool = pg_driver.pool.SimpleConnectionPool(
-            1, 5, user=args.pg_user, password=args.pg_password,
-            host=args.pg_host, port=args.pg_port
-        )
-
-        def getconn():
-            return pg_pool.getconn()
-
-            # return pg_driver.connect(
-            #     user=args.pg_user,
-            #     password=args.pg_password,
-            #     host=args.pg_host,
-            #     port=args.pg_port
-            # )
-
-        def putconn(conn):
-            # conn.close()
-            pg_pool.putconn(conn)
-
-        return ConnectionFactory(
-            open_fxn=getconn, close_fxn=putconn
-        )
+        cherrypy.log("DB Use PostgreSQL")
+        return PGConnectionFactory(args)
