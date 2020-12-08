@@ -29,7 +29,7 @@ class App(object):
                       pharmacy_id,
                       remainder,
                       price):
-        PharmacyGood.update(self.connection_factory, drug_id, pharmacy_id, remainder, price)
+        PharmacyGood.update(self.connection_factory, int(drug_id), int(pharmacy_id), int(remainder), float(price))
 
     @cherrypy.expose
     @cherrypy.tools.json_out()

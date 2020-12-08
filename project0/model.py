@@ -85,8 +85,8 @@ class PharmacyGood(ORMBase):
             pharmacy_good_table = cls.bind_to_database(connection)
 
             q = pharmacy_good_table.update(
-                quantity = int(remainder),
-                price = float(price)
+                quantity = remainder,
+                price = price
             ).where(
                 pharmacy_good_table.c.drug_id == drug_id,
                 pharmacy_good_table.c.pharmacy_id == pharmacy_id,
