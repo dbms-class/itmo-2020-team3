@@ -79,18 +79,29 @@ class Drug(ORMBase):
 
 class PharmacyGood(ORMBase):
     @classmethod
-    def update(cls, connection_factory: ConnectionFactory,
+    def update_retail(cls, connection_factory: ConnectionFactory,
                drug_id: int, pharmacy_id: int, remainder: int, price: float):
         with connection_factory.get_connection() as connection:
-            pharmacy_good_table = cls.bind_to_database(connection)
+            pharmacy_good_table : pw.Table = cls.bind_to_database(connection)
 
-            q = pharmacy_good_table.update(
-                quantity = remainder,
-                price = price
-            ).where(
+            if pharmacy_good_table.select().where(
                 pharmacy_good_table.c.drug_id == drug_id,
                 pharmacy_good_table.c.pharmacy_id == pharmacy_id,
-            )
+            ).count() > 0:
+                q = pharmacy_good_table.update(
+                    quantity = remainder,
+                    price = price
+                ).where(
+                    pharmacy_good_table.c.drug_id == drug_id,
+                    pharmacy_good_table.c.pharmacy_id == pharmacy_id,
+                )
+            else:
+                q = pharmacy_good_table.insert(
+                    pharmacy_id=pharmacy_id,
+                    drug_id=drug_id,
+                    price=price,
+                    quantity=remainder
+                )
 
             q.execute()
 
