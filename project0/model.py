@@ -106,6 +106,26 @@ class PharmacyGood(ORMBase):
             q.execute()
 
     @classmethod
+    def drug_move(cls, connection_factory: ConnectionFactory,
+                  drug_id: int, min_remainder: int,
+                  target_income_increase: float):
+        with connection_factory.get_connection() as connection:
+            pharmacy_good_table: pw.Table = cls.bind_to_database(
+                connection)
+
+            while pharmacy_good_table.select().where(
+                    pharmacy_good_table.c.drug_id == drug_id,
+                    pharmacy_good_table.c.quantity > min_remainder
+            ).count() > 0 and target_income_increase > 0:
+                count = pharmacy_good_table.select(
+                    pharmacy_good_table.c.quantity - min_remainder
+                ).where(
+                    pharmacy_good_table.c.drug_id == drug_id,
+                    pharmacy_good_table.c.quantity > min_remainder
+                )
+                print(count)
+
+    @classmethod
     def bind_to_database(cls, connection):
         return pw.Table('pharmacygood').bind(connection)
 
