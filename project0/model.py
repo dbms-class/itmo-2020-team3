@@ -80,17 +80,17 @@ class Drug(ORMBase):
 class PharmacyGood(ORMBase):
     @classmethod
     def update_retail(cls, connection_factory: ConnectionFactory,
-               drug_id: int, pharmacy_id: int, remainder: int, price: float):
+                      drug_id: int, pharmacy_id: int, remainder: int, price: float):
         with connection_factory.get_connection() as connection:
-            pharmacy_good_table : pw.Table = cls.bind_to_database(connection)
+            pharmacy_good_table: pw.Table = cls.bind_to_database(connection)
 
             if pharmacy_good_table.select().where(
-                pharmacy_good_table.c.drug_id == drug_id,
-                pharmacy_good_table.c.pharmacy_id == pharmacy_id,
+                    pharmacy_good_table.c.drug_id == drug_id,
+                    pharmacy_good_table.c.pharmacy_id == pharmacy_id,
             ).count() > 0:
                 q = pharmacy_good_table.update(
-                    quantity = remainder,
-                    price = price
+                    quantity=remainder,
+                    price=price
                 ).where(
                     pharmacy_good_table.c.drug_id == drug_id,
                     pharmacy_good_table.c.pharmacy_id == pharmacy_id,
@@ -113,17 +113,71 @@ class PharmacyGood(ORMBase):
             pharmacy_good_table: pw.Table = cls.bind_to_database(
                 connection)
 
-            while pharmacy_good_table.select().where(
-                    pharmacy_good_table.c.drug_id == drug_id,
-                    pharmacy_good_table.c.quantity > min_remainder
-            ).count() > 0 and target_income_increase > 0:
-                count = pharmacy_good_table.select(
-                    pharmacy_good_table.c.quantity - min_remainder
+            class DrugMove:
+                def __init__(self, from_pharmacy_id, to_pharmacy_id, price_difference, count):
+                    self.from_pharmacy_id = from_pharmacy_id
+                    self.to_pharmacy_id = to_pharmacy_id
+                    self.price_difference = price_difference
+                    self.count = count
+
+            drug_moves = []
+
+            while target_income_increase > 0:
+                min_price = pharmacy_good_table.select(
+                    pw.fn.MIN(pharmacy_good_table.c.price).alias('min_price')
                 ).where(
                     pharmacy_good_table.c.drug_id == drug_id,
                     pharmacy_good_table.c.quantity > min_remainder
                 )
-                print(count)
+                max_price = pharmacy_good_table.select(
+                    pw.fn.MAX(pharmacy_good_table.c.price).alias('max_price')
+                ).where(
+                    pharmacy_good_table.c.drug_id == drug_id,
+                    pharmacy_good_table.c.quantity < min_remainder
+                )
+                if min_price is None or max_price is None or min_price.min_price >= max_price.max_price:
+                    break
+
+                # TODO is transaction started?
+                from_farmacy = pharmacy_good_table.select(
+                    pharmacy_good_table.c.pharmacy_id,
+                    pharmacy_good_table.c.quantity,
+                    pharmacy_good_table.c.price
+                ).where(
+                    pharmacy_good_table.c.drug_id == drug_id,
+                    pharmacy_good_table.c.price == min_price.min_price
+                )
+                to_farmacy = pharmacy_good_table.select(
+                    pharmacy_good_table.c.pharmacy_id,
+                    pharmacy_good_table.c.quantity,
+                    pharmacy_good_table.c.price
+                ).where(
+                    pharmacy_good_table.c.drug_id == drug_id,
+                    pharmacy_good_table.c.price == max_price.max_price
+                )
+                amount_diff = from_farmacy.quantity - min_remainder
+                price_diff = to_farmacy.price * price_diff - from_farmacy.price * price_diff
+                target_income_increase -= price_diff
+
+                q1 = pharmacy_good_table.update(
+                    quantity=min_remainder,
+                ).where(
+                    pharmacy_good_table.c.drug_id == drug_id,
+                    pharmacy_good_table.c.pharmacy_id == from_farmacy.pharmacy_id,
+                )
+                q2 = pharmacy_good_table.update(
+                    quantity=to_farmacy.quantity + amount_diff,
+                ).where(
+                    pharmacy_good_table.c.drug_id == drug_id,
+                    pharmacy_good_table.c.pharmacy_id == from_farmacy.pharmacy_id,
+                )
+                q1.execute()
+                q2.execute()
+                drug_moves.append(
+                    DrugMove(from_farmacy.pharmacy_id,
+                             to_farmacy.pharmacy_id,
+                             price_diff,
+                             amount_diff))
 
     @classmethod
     def bind_to_database(cls, connection):
@@ -131,7 +185,8 @@ class PharmacyGood(ORMBase):
 
 
 class RetailStatus(ORMBase):
-    def __init__(self, drug_id: int, drug_trade_name: str, drug_inn: str, pharmacy_id: int, pharmacy_address: str,
+    def __init__(self, drug_id: int, drug_trade_name: str, drug_inn: str, pharmacy_id: int,
+                 pharmacy_address: str,
                  remainder: int, price: float, min_price: float, max_price: float):
         self.drug_id = drug_id
         self.drug_trade_name = drug_trade_name
@@ -144,7 +199,8 @@ class RetailStatus(ORMBase):
         self.max_price = max_price
 
     @classmethod
-    def get(cls, connection_factory: ConnectionFactory, drug_id: int = None, min_remainder: int = None,
+    def get(cls, connection_factory: ConnectionFactory, drug_id: int = None,
+            min_remainder: int = None,
             max_price: int = None):
         with connection_factory.get_connection() as connection:
             pharmacy_good_table = PharmacyGood.bind_to_database(connection)
@@ -181,7 +237,8 @@ class RetailStatus(ORMBase):
 
             if min_remainder is not None:
                 q = q.where(pharmacy_good_table.c.quantity >= int(min_remainder))
-                min_max_query = min_max_query.where(pharmacy_good_table.c.quantity >= int(min_remainder))
+                min_max_query = min_max_query.where(
+                    pharmacy_good_table.c.quantity >= int(min_remainder))
 
             if max_price is not None:
                 q = q.where(pharmacy_good_table.c.price <= float(max_price))
