@@ -34,7 +34,7 @@ class App(object):
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def drug_move(self, drug_id, min_remainder, target_income_increase):
-        PharmacyGood.drug_move(self.connection_factory, int(drug_id), int(min_remainder), float(target_income_increase))
+        return PharmacyGood.drug_move(self.connection_factory, int(drug_id), int(min_remainder), float(target_income_increase))
 
     @cherrypy.expose
     @cherrypy.tools.json_out()

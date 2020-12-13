@@ -188,6 +188,8 @@ class PharmacyGood(ORMBase):
                              to_pharmacy.pharmacy_id,
                              price_diff,
                              amount_diff))
+            return drug_moves
+
 
     @classmethod
     def bind_to_database(cls, connection):
