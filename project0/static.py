@@ -27,16 +27,33 @@ def index():
             id="updateGoodButton">
         Обновить
         </button>
+
+        <h4 style="margin-top: 1rem;"> Перераспределить лекарство </h4>
+        <label for="drugSelect2">Лекарство</label>
+        <select class="form-control" id="drugSelect2"></select>
+        <label for="remainderInput">Минимально допустимый остаток</label>
+        <input type="number" class="form-control" id="remainderInput"/>
+        <label for="profitInput">Целевое увеличение прибыли</label>
+        <input type="number" class="form-control" id="profitInput"/>
+        <button
+            style="margin-top: 2rem;"
+            class="form-control"
+            id="redistributeButton">
+        Перераспределить
+        </button>
     </div>
 </form>
 <script lang="js">
     function loadData() {
         const drugSelect = $('#drugSelect');
+        const drugSelect2 = $('#drugSelect2');
         $.getJSON('/drugs', function (drugs) {
            drugs.forEach(function (value) {
                value = JSON.parse(value);
                $("<option>").text(value.trade_name).attr("value", value.id)
                    .appendTo(drugSelect);
+               $("<option>").text(value.trade_name).attr("value", value.id)
+                   .appendTo(drugSelect2);
            })
         });
         const pharmacySelect = $('#pharmacySelect');
@@ -57,6 +74,18 @@ def index():
                 "pharmacy_id": pharmacySelect.val(),
                 "remainder": quantityInput.val(),
                 "price": priceInput.val(),
+            });
+        });
+        $('#redistributeButton').click(function() {
+            const drugSelect = $('#drugSelect2');
+            const profitInput = $('#profitInput');
+            const remainderInput = $('#remainderInput');
+            $.post("/drug_move", {
+                "drug_id": drugSelect.val(),
+                "target_income_increase": profitInput.val(),
+                "min_remainder": remainderInput.val(),
+            }).done(function(response) {
+                console.log(response);
             });
         });
     }
