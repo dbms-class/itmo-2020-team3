@@ -123,23 +123,26 @@ class PharmacyGood(ORMBase):
             drug_moves = []
 
             while target_income_increase > 0:
-                min_price = pharmacy_good_table.select(
+                min_price_select = pharmacy_good_table.select(
                     pw.fn.MIN(pharmacy_good_table.c.price).alias('min_price')
                 ).where(
                     pharmacy_good_table.c.drug_id == drug_id,
                     pharmacy_good_table.c.quantity > min_remainder
                 )
-                max_price = pharmacy_good_table.select(
+                min_price = [f for f in min_price_select][0]['min_price']
+                max_price_select = pharmacy_good_table.select(
                     pw.fn.MAX(pharmacy_good_table.c.price).alias('max_price')
                 ).where(
                     pharmacy_good_table.c.drug_id == drug_id,
                     pharmacy_good_table.c.quantity < min_remainder
                 )
+                max_price = [f for f in max_price_select][0]['max_price']
+                print(min_price, '<<<>>>', max_price)
                 if min_price is None or max_price is None or min_price.min_price >= max_price.max_price:
                     break
 
                 # TODO is transaction started?
-                from_farmacy = pharmacy_good_table.select(
+                from_pharmacy_select = pharmacy_good_table.select(
                     pharmacy_good_table.c.pharmacy_id,
                     pharmacy_good_table.c.quantity,
                     pharmacy_good_table.c.price
@@ -147,7 +150,8 @@ class PharmacyGood(ORMBase):
                     pharmacy_good_table.c.drug_id == drug_id,
                     pharmacy_good_table.c.price == min_price.min_price
                 )
-                to_farmacy = pharmacy_good_table.select(
+                from_pharmacy = [f for f in from_pharmacy_select.objects(cls)][0]
+                to_pharmacy_select = pharmacy_good_table.select(
                     pharmacy_good_table.c.pharmacy_id,
                     pharmacy_good_table.c.quantity,
                     pharmacy_good_table.c.price
@@ -155,27 +159,28 @@ class PharmacyGood(ORMBase):
                     pharmacy_good_table.c.drug_id == drug_id,
                     pharmacy_good_table.c.price == max_price.max_price
                 )
-                amount_diff = from_farmacy.quantity - min_remainder
-                price_diff = to_farmacy.price * price_diff - from_farmacy.price * price_diff
+                to_pharmacy = [f for f in to_pharmacy_select.objects(cls)][0]
+                amount_diff = from_pharmacy.quantity - min_remainder
+                price_diff = to_pharmacy.price * price_diff - from_pharmacy.price * price_diff
                 target_income_increase -= price_diff
 
                 q1 = pharmacy_good_table.update(
                     quantity=min_remainder,
                 ).where(
                     pharmacy_good_table.c.drug_id == drug_id,
-                    pharmacy_good_table.c.pharmacy_id == from_farmacy.pharmacy_id,
+                    pharmacy_good_table.c.pharmacy_id == from_pharmacy.pharmacy_id,
                 )
                 q2 = pharmacy_good_table.update(
-                    quantity=to_farmacy.quantity + amount_diff,
+                    quantity=to_pharmacy.quantity + amount_diff,
                 ).where(
                     pharmacy_good_table.c.drug_id == drug_id,
-                    pharmacy_good_table.c.pharmacy_id == from_farmacy.pharmacy_id,
+                    pharmacy_good_table.c.pharmacy_id == from_pharmacy.pharmacy_id,
                 )
                 q1.execute()
                 q2.execute()
                 drug_moves.append(
-                    DrugMove(from_farmacy.pharmacy_id,
-                             to_farmacy.pharmacy_id,
+                    DrugMove(from_pharmacy.pharmacy_id,
+                             to_pharmacy.pharmacy_id,
                              price_diff,
                              amount_diff))
 
