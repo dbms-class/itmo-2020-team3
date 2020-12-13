@@ -118,13 +118,6 @@ class PharmacyGood(ORMBase):
             pharmacy_good_table: pw.Table = cls.bind_to_database(
                 connection)
 
-            class DrugMove:
-                def __init__(self, from_pharmacy_id, to_pharmacy_id, price_difference, count):
-                    self.from_pharmacy_id = from_pharmacy_id
-                    self.to_pharmacy_id = to_pharmacy_id
-                    self.price_difference = price_difference
-                    self.count = count
-
             drug_moves = []
 
             while target_income_increase > 0:
@@ -183,13 +176,13 @@ class PharmacyGood(ORMBase):
                 )
                 q1.execute()
                 q2.execute()
-                drug_moves.append(
-                    DrugMove(from_pharmacy.pharmacy_id,
-                             to_pharmacy.pharmacy_id,
-                             price_diff,
-                             amount_diff))
+                drug_moves.append({
+                    "from_pharmacy_id": from_pharmacy.pharmacy_id,
+                    "to_pharmacy_id": to_pharmacy.pharmacy_id,
+                    "price_difference": price_diff,
+                    "count": amount_diff
+                })
             return drug_moves
-
 
     @classmethod
     def bind_to_database(cls, connection):
