@@ -122,6 +122,10 @@ create table PharmacyGood (
 );
 
 insert into Pharmacy (id, name, address, number) values (1, 'Аптека у Ашота', 'Дембелева 2', 1);
+insert into Pharmacy (id, name, address, number) values (2, 'Аптека у Ашана', 'Василеостровский пр-т 4', 1);
+insert into Pharmacy (id, name, address, number) values (3, 'Аптека у Башота', 'Пр-кт Комсомола 8', 1);
+insert into Pharmacy (id, name, address, number) values (4, 'Аптека у Дома', 'Кудрово 25', 1);
+insert into Pharmacy (id, name, address, number) values (3, 'Аптека у Ленина', 'Ул. Ленина 15', 1);
 insert into Lab (id, name, chief_lastname) values (1, 'Лаба по химии', 'Менделеев');
 insert into Certification (number, valid_until, lab_id) values (1, '1999-01-08', 1), (2, '1999-08-01', 1);
 insert into MedicalForm (id, name) values (1, 'Таблетки'), (2, 'Вакцина');
@@ -130,6 +134,8 @@ insert into Drug (id, trade_name, international_name, medical_form, manufacturer
 (1, 'Ациллококцинум', 'Сахар', 1, 1, 1, 1),
 (2, 'Спутник-V', 'Сахар', 2, 1, 1, 2);
 insert into PharmacyGood (pharmacy_id, drug_id, price, quantity) values (1, 1, 99999, 100);
+insert into PharmacyGood (pharmacy_id, drug_id, price, quantity) values (2, 1, 12, 10000);
+insert into PharmacyGood (pharmacy_id, drug_id, price, quantity) values (3, 1, 1, 1000);
 
 -- Автомобиль с регистрационным номером и датой последнего техобслуживания
 create table Car (
