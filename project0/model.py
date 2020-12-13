@@ -142,7 +142,6 @@ class PharmacyGood(ORMBase):
                     pharmacy_good_table.c.quantity < min_remainder
                 )
                 max_price = [f for f in max_price_select][0]['max_price']
-                print(min_price, '<<<>>>', max_price)
                 if min_price is None or max_price is None or min_price >= max_price:
                     break
 
@@ -156,7 +155,6 @@ class PharmacyGood(ORMBase):
                     pharmacy_good_table.c.price == min_price
                 )
                 from_pharmacy = [f for f in from_pharmacy_select.objects(cls)]
-                print(from_pharmacy)
                 from_pharmacy = from_pharmacy[0]
                 to_pharmacy_select = pharmacy_good_table.select(
                     pharmacy_good_table.c.pharmacy_id,
