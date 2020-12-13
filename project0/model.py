@@ -78,6 +78,11 @@ class Drug(ORMBase):
 
 
 class PharmacyGood(ORMBase):
+    def __init__(self, pharmacy_id: int, quantity: int, price: int):
+        self.pharmacy_id = pharmacy_id
+        self.quantity = quantity
+        self.price = price
+
     @classmethod
     def update_retail(cls, connection_factory: ConnectionFactory,
                       drug_id: int, pharmacy_id: int, remainder: int, price: float):
@@ -150,7 +155,9 @@ class PharmacyGood(ORMBase):
                     pharmacy_good_table.c.drug_id == drug_id,
                     pharmacy_good_table.c.price == min_price
                 )
-                from_pharmacy = [f for f in from_pharmacy_select.objects(cls)][0]
+                from_pharmacy = [f for f in from_pharmacy_select.objects(cls)]
+                print(from_pharmacy)
+                from_pharmacy = from_pharmacy[0]
                 to_pharmacy_select = pharmacy_good_table.select(
                     pharmacy_good_table.c.pharmacy_id,
                     pharmacy_good_table.c.quantity,
@@ -161,7 +168,7 @@ class PharmacyGood(ORMBase):
                 )
                 to_pharmacy = [f for f in to_pharmacy_select.objects(cls)][0]
                 amount_diff = from_pharmacy.quantity - min_remainder
-                price_diff = to_pharmacy.price * price_diff - from_pharmacy.price * price_diff
+                price_diff = to_pharmacy.price * amount_diff - from_pharmacy.price * amount_diff
                 target_income_increase -= price_diff
 
                 q1 = pharmacy_good_table.update(
