@@ -138,7 +138,7 @@ class PharmacyGood(ORMBase):
                 )
                 max_price = [f for f in max_price_select][0]['max_price']
                 print(min_price, '<<<>>>', max_price)
-                if min_price is None or max_price is None or min_price.min_price >= max_price.max_price:
+                if min_price is None or max_price is None or min_price >= max_price:
                     break
 
                 # TODO is transaction started?
@@ -148,7 +148,7 @@ class PharmacyGood(ORMBase):
                     pharmacy_good_table.c.price
                 ).where(
                     pharmacy_good_table.c.drug_id == drug_id,
-                    pharmacy_good_table.c.price == min_price.min_price
+                    pharmacy_good_table.c.price == min_price
                 )
                 from_pharmacy = [f for f in from_pharmacy_select.objects(cls)][0]
                 to_pharmacy_select = pharmacy_good_table.select(
@@ -157,7 +157,7 @@ class PharmacyGood(ORMBase):
                     pharmacy_good_table.c.price
                 ).where(
                     pharmacy_good_table.c.drug_id == drug_id,
-                    pharmacy_good_table.c.price == max_price.max_price
+                    pharmacy_good_table.c.price == max_price
                 )
                 to_pharmacy = [f for f in to_pharmacy_select.objects(cls)][0]
                 amount_diff = from_pharmacy.quantity - min_remainder
