@@ -1,21 +1,16 @@
 # encoding: UTF-8
 
-import argparse
 import abc
-
-import cherrypy
-
+import argparse
 # Драйвер PostgreSQL
 # Находится в модуле psycopg2-binary, который можно установить командой
 # pip install psycopg2-binary или её аналогом.
-import psycopg2 as pg_driver
-import psycopg2.pool
 from contextlib import contextmanager
 
+import cherrypy
 # Драйвер SQLite3
 # Находится в модуле sqlite3, который можно установить командой
 # pip install sqlite3 или её аналогом.
-import sqlite3 as sqlite_driver
 from playhouse.db_url import connect
 
 
@@ -44,10 +39,7 @@ class ConnectionFactory(abc.ABC):
     @contextmanager
     def get_connection(self):
         conn = self.__get_conn()
-        try:
-            yield conn
-        finally:
-            ConnectionFactory.__put_conn(conn)
+        yield conn
 
     def __get_conn(self):
         return connect(self._get_db_url())
