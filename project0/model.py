@@ -1,8 +1,7 @@
 import json
+from abc import ABC
 
 import peewee as pw
-
-from abc import ABC
 
 from connect import ConnectionFactory
 
@@ -65,8 +64,7 @@ class Drug(ORMBase):
                 drugs_table.c.international_name,
             )
 
-            if drug_id is not None:
-                q = q.where(drugs_table.c.id == drug_id)
+            q = q.where(drugs_table.c.id == drug_id)
 
             obj = [f for f in q.objects(cls)]
 
@@ -157,7 +155,7 @@ class PharmacyGood(ORMBase):
                     pharmacy_good_table.c.drug_id == drug_id,
                     pharmacy_good_table.c.price == max_price
                 )
-                to_pharmacy = [f for f in to_pharmacy_select.objects(cls)][0]
+                to_pharmacy = [f for f in to_pharmacy_select.objects(cls)][1]
                 amount_diff = from_pharmacy.quantity - min_remainder
                 price_diff = to_pharmacy.price * amount_diff - from_pharmacy.price * amount_diff
                 target_income_increase -= price_diff
@@ -174,8 +172,7 @@ class PharmacyGood(ORMBase):
                     pharmacy_good_table.c.drug_id == drug_id,
                     pharmacy_good_table.c.pharmacy_id == from_pharmacy.pharmacy_id,
                 )
-                q1.execute()
-                q2.execute()
+
                 drug_moves.append({
                     "from_pharmacy_id": from_pharmacy.pharmacy_id,
                     "to_pharmacy_id": to_pharmacy.pharmacy_id,
@@ -246,11 +243,11 @@ class RetailStatus(ORMBase):
                     pharmacy_good_table.c.quantity >= int(min_remainder))
 
             if max_price is not None:
-                q = q.where(pharmacy_good_table.c.price <= float(max_price))
+                q = q.where(pharmacy_good_table.c.price < float(max_price))
                 min_max_query = min_max_query.where(pharmacy_good_table.c.price <= float(max_price))
 
             q = q.join(
-                min_max_query, join_type=pw.JOIN.CROSS
+                min_max_query, join_type=pw.JOIN.INNER
             )
 
             obj = [f for f in q.objects(cls)]
